@@ -333,7 +333,20 @@
         }
         
         // Create a building
-        const mainBuilding = createBuilding(-20, -20, 12, 8, 12);
+        const mainBuilding = createBuilding(-20, -20, 12, 8, 12);// Add more buildings to the game world
+const additionalBuildings = [
+    createBuilding(20, -15, 10, 6, 8),    // Large building to the east
+    createBuilding(5, 25, 8, 4, 7),       // Medium building to the north
+    createBuilding(-25, 10, 14, 10, 9),   // Tall building to the northwest
+    createBuilding(15, 15, 6, 3, 6),      // Small building to the northeast
+    createBuilding(-15, -5, 5, 5, 5),     // Square building near center
+    createBuilding(0, -30, 20, 7, 7),     // Wide building to the south
+    createBuilding(30, 0, 9, 12, 8)       // Tower to the east
+];
+
+// Track all buildings for bullet collision detection
+const allBuildings = [mainBuilding, ...additionalBuildings];
+        
         function createEnemy(x, z) {
             // Create enemy group to hold all parts
             const enemyGroup = new THREE.Group();
@@ -895,25 +908,37 @@
                 }
                 
                 // Check collisions with the building
-                if (bullet && mainBuilding) {
-                    const buildingBounds = {
-                        minX: mainBuilding.position.x - 6,
-                        maxX: mainBuilding.position.x + 6,
-                        minZ: mainBuilding.position.z - 6,
-                        maxZ: mainBuilding.position.z + 6,
-                        minY: 0,
-                        maxY: 8
-                    };
-                    
-                    if (bullet.position.x > buildingBounds.minX && bullet.position.x < buildingBounds.maxX &&
-                        bullet.position.z > buildingBounds.minZ && bullet.position.z < buildingBounds.maxZ &&
-                        bullet.position.y > buildingBounds.minY && bullet.position.y < buildingBounds.maxY) {
-                        // Bullet hit the building
-                        scene.remove(bullet);
-                        bullets.splice(i, 1);
-                        continue;
-                    }
-                }
+                // Check collisions with all buildings
+if (bullet) {
+    let hitBuilding = false;
+    for (const building of allBuildings) {
+        // Get the width, height, and depth from the first child (the main building mesh)
+        const buildingMesh = building.children[0];
+        const width = buildingMesh.geometry.parameters.width;
+        const height = buildingMesh.geometry.parameters.height;
+        const depth = buildingMesh.geometry.parameters.depth;
+        
+        const buildingBounds = {
+            minX: building.position.x - width/2,
+            maxX: building.position.x + width/2,
+            minZ: building.position.z - depth/2,
+            maxZ: building.position.z + depth/2,
+            minY: building.position.y,
+            maxY: building.position.y + height
+        };
+        
+        if (bullet.position.x > buildingBounds.minX && bullet.position.x < buildingBounds.maxX &&
+            bullet.position.z > buildingBounds.minZ && bullet.position.z < buildingBounds.maxZ &&
+            bullet.position.y > buildingBounds.minY && bullet.position.y < buildingBounds.maxY) {
+            // Bullet hit a building
+            scene.remove(bullet);
+            bullets.splice(i, 1);
+            hitBuilding = true;
+            break;
+        }
+    }
+    if (hitBuilding) continue;
+}
                 
                 // Despawn after time to live or out of bounds
                 if (bullet && (bullet.userData.timeToLive-- <= 0 || 
